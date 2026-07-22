@@ -7,10 +7,20 @@
   <style>
     body { font-family: sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }
     h1 { text-align: center; color: #333; }
+    
+    /* Giriş Kutusu Tasarımı */
+    #login-box { max-width: 350px; margin: 80px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
+    #login-box input { width: 90%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; }
+    #login-box button { width: 96%; padding: 10px; background: #3498db; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    #login-box button:hover { background: #2980b9; }
+    #error-msg { color: #e74c3c; font-size: 0.85em; margin-top: 10px; display: none; }
+
+    /* Panel Tasarımı */
+    #main-panel { display: none; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; max-width: 1000px; margin: 20px auto; }
     .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 6px solid #ccc; }
-    .card.dolu { border-left-color: #e74c3c; } /* Kırmızı */
-    .card.bosta { border-left-color: #2ecc71; } /* Yeşil */
+    .card.dolu { border-left-color: #e74c3c; }
+    .card.bosta { border-left-color: #2ecc71; }
     .plaka { font-size: 1.2em; font-weight: bold; color: #2c3e50; }
     .durum { display: inline-block; margin-top: 8px; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: white; font-size: 0.85em; }
     .durum.dolu { background: #e74c3c; }
@@ -20,13 +30,42 @@
 </head>
 <body>
 
-  <h1>🚗 İkame Araç Durum Panosu</h1>
-  <div id="loading" style="text-align:center;">Veriler yükleniyor...</div>
-  <div id="arac-listesi" class="grid"></div>
+  <!-- 1. GİRİŞ EKRANI -->
+  <div id="login-box">
+    <h2>🔒 Sistem Girişi</h2>
+    <input type="text" id="username" placeholder="Kullanıcı Adı">
+    <input type="password" id="password" placeholder="Şifre">
+    <button onclick="girisYap()">Giriş Yap</button>
+    <div id="error-msg">Kullanıcı adı veya şifre hatalı!</div>
+  </div>
+
+  <!-- 2. ARAÇ PANELİ (Giriş Yapılınca Açılır) -->
+  <div id="main-panel">
+    <h1>🚗 İkame Araç Durum Panosu</h1>
+    <div id="loading" style="text-align:center;">Veriler yükleniyor...</div>
+    <div id="arac-listesi" class="grid"></div>
+  </div>
 
   <script>
-    // Buraya Google E-Tablo Apps Script API Linki gelecek
+    // --- GİRİŞ BİLGİLERİ (Buraları Kendine Göre Değiştir) ---
+    const DOGRU_KULLANICI = "admin";
+    const DOGRU_SIFRE = "123456";
+
+    // --- GOOGLE APPS SCRIPT LINKI ---
     const API_URL = "GOOGLE_APPS_SCRIPT_LINKI_BURAYA_GELECEK";
+
+    function girisYap() {
+      const user = document.getElementById('username').value;
+      const pass = document.getElementById('password').value;
+
+      if(user === DOGRU_KULLANICI && pass === DOGRU_SIFRE) {
+        document.getElementById('login-box').style.display = 'none';
+        document.getElementById('main-panel').style.display = 'block';
+        verileriGetir(); // Doğru giriş yapılınca verileri çek
+      } else {
+        document.getElementById('error-msg').style.display = 'block';
+      }
+    }
 
     async function verileriGetir() {
       try {
@@ -38,7 +77,6 @@
         liste.innerHTML = '';
 
         data.forEach(arac => {
-          // Tablondaki sütun isimlerine göre buraları eşleyeceğiz
           const plaka = arac.Plaka || "Bilinmiyor";
           const durum = (arac.Durum || "").toUpperCase(); 
           const model = arac.Model || "";
@@ -57,10 +95,6 @@
       } catch (error) {
         document.getElementById('loading').innerText = "Veri çekilemedi. API URL'sini kontrol edin.";
       }
-    }
-
-    if(API_URL !== "GOOGLE_APPS_SCRIPT_LINKI_BURAYA_GELECEK") {
-      verileriGetir();
     }
   </script>
 </body>

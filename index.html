@@ -3,98 +3,119 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>İkame Araç Takip Panel</title>
+  <title>PSA İkame Araç Takip Paneli</title>
   <style>
     body { font-family: sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }
-    h1 { text-align: center; color: #333; }
+    h1 { text-align: center; color: #333; margin-bottom: 20px; }
     
-    /* Giriş Kutusu Tasarımı */
-    #login-box { max-width: 350px; margin: 80px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
+    /* Giriş Kutusu */
+    #login-box { max-width: 350px; margin: 80px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     #login-box input { width: 90%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; }
     #login-box button { width: 96%; padding: 10px; background: #3498db; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
     #login-box button:hover { background: #2980b9; }
     #error-msg { color: #e74c3c; font-size: 0.85em; margin-top: 10px; display: none; }
 
-    /* Panel Tasarımı */
-    #main-panel { display: none; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; max-width: 1000px; margin: 20px auto; }
-    .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 6px solid #ccc; }
+    /* Araç Panosu Grid */
+    #dashboard { display: none; max-width: 1100px; margin: 0 auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+    
+    .card { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); border-left: 6px solid #ccc; position: relative; }
     .card.dolu { border-left-color: #e74c3c; }
     .card.bosta { border-left-color: #2ecc71; }
-    .plaka { font-size: 1.2em; font-weight: bold; color: #2c3e50; }
-    .durum { display: inline-block; margin-top: 8px; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: white; font-size: 0.85em; }
-    .durum.dolu { background: #e74c3c; }
-    .durum.bosta { background: #2ecc71; }
-    .detay { color: #666; font-size: 0.9em; margin-top: 5px; }
+
+    .brand { font-size: 0.8em; font-weight: bold; color: #7f8c8d; text-transform: uppercase; }
+    .plate { font-size: 1.4em; font-weight: bold; color: #2c3e50; margin: 4px 0; }
+    .model { font-size: 0.9em; color: #555; }
+    
+    .status-badge { position: absolute; top: 15px; right: 15px; padding: 4px 10px; border-radius: 12px; font-size: 0.75em; font-weight: bold; color: white; }
+    .status-badge.dolu { background: #e74c3c; }
+    .status-badge.bosta { background: #2ecc71; }
+    
+    #loading { text-align: center; font-size: 1.2em; color: #666; margin-top: 40px; }
   </style>
 </head>
 <body>
 
-  <!-- 1. GİRİŞ EKRANI -->
+  <!-- Giriş Ekranı -->
   <div id="login-box">
-    <h2>🔒 Sistem Girişi</h2>
+    <h2 style="text-align:center; margin-top:0;">Giriş Yap</h2>
     <input type="text" id="username" placeholder="Kullanıcı Adı">
     <input type="password" id="password" placeholder="Şifre">
-    <button onclick="girisYap()">Giriş Yap</button>
-    <div id="error-msg">Kullanıcı adı veya şifre hatalı!</div>
+    <button onclick="login()">Giriş</button>
+    <div id="error-msg">Hatalı kullanıcı adı veya şifre!</div>
   </div>
 
-  <!-- 2. ARAÇ PANELİ (Giriş Yapılınca Açılır) -->
-  <div id="main-panel">
-    <h1>🚗 İkame Araç Durum Panosu</h1>
-    <div id="loading" style="text-align:center;">Veriler yükleniyor...</div>
-    <div id="arac-listesi" class="grid"></div>
+  <!-- Pano Ekranı -->
+  <div id="dashboard">
+    <h1>🚗 PSA İkame Araç Durum Panosu</h1>
+    <div id="loading">Veriler yükleniyor...</div>
+    <div id="vehicle-grid" class="grid"></div>
   </div>
 
   <script>
-    // --- GİRİŞ BİLGİLERİ (Buraları Kendine Göre Değiştir) ---
-    const DOGRU_KULLANICI = "admin";
-    const DOGRU_SIFRE = "123456";
+    // GOOGLE APPS SCRIPT LINKINI BURAYA YAPISTIR
+    const API_URL = "https://script.google.com/macros/s/AKfycbw7fb2eySg3StfeRBvj8UdEGzF2LQLI_Evaw5LEFLNvtTbZWhEv_ki6mMpzMeEnFDoYcQ/exec"; 
 
-    // --- GOOGLE APPS SCRIPT LINKI ---
-    const API_URL = "https://script.google.com/macros/s/AKfycbw7fb2eySg3StfeRBvj8UdEGzF2LQLI_Evaw5LEFLNvtTbZWhEv_ki6mMpzMeEnFDoYcQ/exec";
+    function login() {
+      const u = document.getElementById("username").value;
+      const p = document.getElementById("password").value;
 
-    function girisYap() {
-      const user = document.getElementById('username').value;
-      const pass = document.getElementById('password').value;
-
-      if(user === DOGRU_KULLANICI && pass === DOGRU_SIFRE) {
-        document.getElementById('login-box').style.display = 'none';
-        document.getElementById('main-panel').style.display = 'block';
-        verileriGetir(); // Doğru giriş yapılınca verileri çek
+      if (u === "admin" && p === "123456") {
+        document.getElementById("login-box").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        fetchData();
       } else {
-        document.getElementById('error-msg').style.display = 'block';
+        document.getElementById("error-msg").style.display = "block";
       }
     }
 
-    async function verileriGetir() {
-      try {
-        const response = await fetch(API_URL);
-        const data = await response.json();
-        
-        document.getElementById('loading').style.display = 'none';
-        const liste = document.getElementById('arac-listesi');
-        liste.innerHTML = '';
+    function fetchData() {
+      fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("loading").style.display = "none";
+          const container = document.getElementById("vehicle-grid");
+          container.innerHTML = "";
 
-        data.forEach(arac => {
-          const plaka = arac.Plaka || "Bilinmiyor";
-          const durum = (arac.Durum || "").toUpperCase(); 
-          const model = arac.Model || "";
-          
-          const isDolu = durum.includes("DOLU");
-          const cssClass = isDolu ? "dolu" : "bosta";
+          // Bütün satırları tara, Plaka ve Durum içeren hücreleri otomatik eşleştir
+          data.forEach(row => {
+            let marka = "", plaka = "", model = "", durum = "";
 
-          liste.innerHTML += `
-            <div class="card ${cssClass}">
-              <div class="plaka">${plaka}</div>
-              <div class="detay">${model}</div>
-              <span class="durum ${cssClass}">${durum}</span>
-            </div>
-          `;
+            // Satır içi arama (başlıklar kaçıncı sütunda olursa olsun bulur)
+            Object.keys(row).forEach(key => {
+              const val = String(row[key]).trim();
+              const cleanKey = String(key).trim().toUpperCase();
+
+              if (cleanKey.includes("MARKA")) marka = val;
+              if (cleanKey.includes("PLAKA")) plaka = val;
+              if (cleanKey.includes("MODEL")) model += (model ? " " : "") + val;
+              if (cleanKey.includes("DURUM")) durum = val;
+            });
+
+            // Eğer plaka varsa kart oluştur
+            if (plaka && plaka.toUpperCase() !== "PLAKA") {
+              const isDolu = durum.toUpperCase().includes("DOLU");
+              const isBosta = durum.toUpperCase().includes("BOŞ") || durum.toUpperCase().includes("BOSTA");
+              
+              const statusClass = isDolu ? "dolu" : (isBosta ? "bosta" : "");
+              const statusText = durum || "Bilinmiyor";
+
+              const card = document.createElement("div");
+              card.className = `card ${statusClass}`;
+              card.innerHTML = `
+                <div class="brand">${marka}</div>
+                <div class="plate">${plaka}</div>
+                <div class="model">${model}</div>
+                <div class="status-badge ${statusClass}">${statusText}</div>
+              `;
+              container.appendChild(card);
+            }
+          });
+        })
+        .catch(err => {
+          document.getElementById("loading").innerText = "Veriler alınırken hata oluştu!";
+          console.error(err);
         });
-      } catch (error) {
-        document.getElementById('loading').innerText = "Veri çekilemedi. API URL'sini kontrol edin.";
-      }
     }
   </script>
 </body>
